@@ -1,0 +1,150 @@
+- name: Deploy Talos Cluster on Proxmox
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - group_vars/vault.yml
+  vars:
+    proxmox_node: "pve-bijok01"
+    talos_version: "v1.5.5"
+    iso_storage: "isos"
+    iso_filename: "talos-{{ talos_version }}.iso"
+    storage: "datastore01"
+    talos_config_dir: "./talos-config"
+    controlplane_vip: "192.168.0.200"
+    gateway: "192.168.0.1"
+    dns_server: "192.168.0.2"
+    cluster_id: "1"
+    cluster_secret: "yoursecrethere"
+    nodes:
+      - name: "talos-cp1"
+        role: "controlplane"
+        vm_id: "203"
+        memory: "4096"
+        cores: "2"
+        ip: "192.168.0.201"
+      - name: "talos-cp2"
+        role: "controlplane"
+        vm_id: "204"
+        memory: "4096"
+        cores: "2"
+        ip: "192.168.0.202"
+      - name: "talos-cp3"
+        role: "controlplane"
+        vm_id: "205"
+        memory: "4096"
+        cores: "2"
+        ip: "192.168.0.203"
+
+  tasks:
+    - name: Ensure talos-config directory exists
+      file:
+        path: "{{ talos_config_dir }}/patches"
+        state: directory
+        mode: '0755'
+
+    - name: Generate Talos patches for each node
+      template:
+        src: templates/controlplane-patch.yaml.j2
+        dest: "{{ talos_config_dir }}/patches/controlplane-patch-{{ item.ip }}.yaml"
+      loop: "{{ nodes }}"
+
+    - name: Check if Talos ISO exists on Proxmox
+      ansible.builtin.stat:
+        path: "/mnt/pve/isos/template/iso/{{ iso_filename }}"
+      register: iso_stat
+      delegate_to: "{{ proxmox_api_host }}"
+
+    - name: Download Talos ISO directly on Proxmox
+      command: |
+        wget https://github.com/talos-systems/talos/releases/download/{{ talos_version }}/metal-amd64.iso -O /mnt/pve/isos/template/iso/{{ iso_filename }}
+      become: true
+      become_user: root
+      delegate_to: "{{ proxmox_api_host }}"
+      when: not iso_stat.stat.exists
+
+    - name: Create base VMs on Proxmox
+      community.general.proxmox_kvm:
+        api_host: "{{ proxmox_api_host }}"
+        api_user: "{{ proxmox_api_user }}"
+        api_password: "{{ proxmox_api_password }}"
+        node: "{{ proxmox_node }}"
+        name: "{{ item.name }}"
+        vmid: "{{ item.vm_id }}"
+        memory: "{{ item.memory }}"
+        cores: "{{ item.cores }}"
+        net:
+          net0: 'model=virtio,bridge=vmbr0'
+        scsi:
+          scsi0: "{{storage}}:32"
+        scsihw: "virtio-scsi-single"
+        ide:
+          ide2: "{{iso_storage}}:iso/{{ iso_filename }},media=cdrom"
+        ostype: "l26"
+        cpu: host
+        boot: "order=ide2;scsi0"
+        state: present
+        description: "Talos node deployed via Ansible"
+      loop: "{{ nodes }}"
+
+    - name: Generate Talos machine configuration
+      template:
+        src: controlplane-patch.yaml.j2
+        dest: "{{ talos_config_dir }}/controlplane-{{ item.name }}.yaml"
+      loop: "{{ nodes }}"
+
+    - name: Generate base64-encoded Talos configuration
+      command: "base64 -i {{ talos_config_dir }}/controlplane-{{ item.name }}.yaml -b 0"
+      register: base64_talos_config
+      delegate_to: localhost
+      changed_when: false
+      loop: "{{ nodes }}"
+
+    - name: Set kernel parameters for each VM
+      shell: |
+        qm set {{ item.vm_id }} \
+        -args "console=tty0 console=ttyS0 talos.platform=metal ip={{ item.ip }}::{{ gateway }}:255.255.255.0:{{ item.name }}:eth0:none nameserver={{ dns_server }} talos.config=embedded:{{ base64_talos_config.results[loop.index0].stdout }}"
+      delegate_to: "{{ proxmox_api_host }}"
+      become: true
+      loop: "{{ nodes }}"
+      when: base64_talos_config is defined and base64_talos_config.results[loop.index0].stdout is defined
+
+    - name: Start VMs
+      community.general.proxmox_kvm:
+        api_host: "{{ proxmox_api_host }}"
+        api_user: "{{ proxmox_api_user }}"
+        api_password: "{{ proxmox_api_password }}"
+        node: "{{ proxmox_node }}"
+        name: "{{ item.name }}"
+        state: started
+      loop: "{{ nodes }}"
+
+    - name: Wait for Talos API on all nodes
+      wait_for:
+        host: "{{ item.ip }}"
+        port: 50000
+        timeout: 300
+      loop: "{{ nodes }}"
+
+    - name: Apply Talos configuration to nodes
+      command: |
+        talosctl --nodes {{ item.ip }} \
+                --talosconfig {{ talos_config_dir }}/talosconfig \
+                apply-config \
+                --file {{ talos_config_dir }}/controlplane.yaml \
+                --config-patch @{{ talos_config_dir }}/patches/controlplane-patch-{{ item.ip }}.yaml
+      loop: "{{ nodes }}"
+      register: talos_config_result
+      until: talos_config_result.rc == 0
+      retries: 5
+      delay: 30
+
+    - name: Wait for all nodes to be healthy
+      command: |
+        talosctl --nodes {{ item.ip }} \
+                --config {{ talos_config_dir }}/talosconfig \
+                health
+      loop: "{{ nodes }}"
+      register: talos_health
+      until: talos_health.rc == 0
+      retries: 10
+      delay: 30

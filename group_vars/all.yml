@@ -1,0 +1,5 @@
+# group_vars/all.yml
+proxmox_api_host: "192.168.0.21"
+proxmox_api_user: "root@pam"
+proxmox_api_password: "{{ vault_proxmox_api_password }}"
+cluster_name: "pve-home"
