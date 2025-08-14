@@ -1,69 +1,15 @@
-# templates/controlplane-patch.yaml.j2
+# Machine-specific network configuration patch
 machine:
   network:
     interfaces:
-      - interface: eth0
+      - interface: ens18
         dhcp: false
         addresses:
           - 192.168.0.201/24
         routes:
           - network: 0.0.0.0/0
             gateway: 192.168.0.1
-                vip:
+        vip:
           ip: 192.168.0.200
-            nameservers:
+    nameservers:
       - 192.168.0.2
-  install:
-    disk: /dev/sda
-  time:
-    disabled: false
-    servers:
-      - time.cloudflare.com
-
-cluster:
-  id: "1"
-  secret: "yoursecrethere"
-  apiServer:
-    certSANs:
-      - "192.168.0.200"
-      - "127.0.0.1"
-      - "192.168.0.201"
-      - "192.168.0.202"
-      - "192.168.0.203"
-  controlPlane:
-    endpoint: "https://192.168.0.200:6443"
-  network:
-    cni:
-      name: none
-    podSubnets:
-      - 10.244.0.0/16
-    serviceSubnets:
-      - 10.96.0.0/12
-    dnsDomain: cluster.local
-  inlineManifests:
-    - name: cilium
-      contents: |
-        apiVersion: helm.cattle.io/v1
-        kind: HelmRelease
-        metadata:
-          name: cilium
-          namespace: kube-system
-        spec:
-          repo: https://helm.cilium.io/
-          chart: cilium
-          version: 1.14.4
-          targetNamespace: kube-system
-          valuesContent: |-
-            ipam:
-              mode: kubernetes
-            k8sServiceHost: 192.168.0.200
-            k8sServicePort: 6443
-            kubeProxyReplacement: strict
-            socketLB:
-              enabled: true
-            hubble:
-              enabled: true
-              relay:
-                enabled: true
-              ui:
-                enabled: true

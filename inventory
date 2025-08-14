@@ -1,2 +1,0 @@
-[proxmox_host]
-192.168.0.21 ansible_user=root ansible_password="{{ vault_ssh_password }}" ansible_ssh_common_args='-o StrictHostKeyChecking=no'

@@ -1,5 +1,43 @@
-# group_vars/all.yml
+# group_vars/all.yml - Talos Cluster Configuration
+
+# Proxmox Configuration
 proxmox_api_host: "192.168.0.21"
 proxmox_api_user: "root@pam"
 proxmox_api_password: "{{ vault_proxmox_api_password }}"
-cluster_name: "pve-home"
+proxmox_node: "pve-bijok01"
+storage: "datastore01"
+iso_storage: "isos"
+
+# Talos Configuration
+talos_version: "v1.5.5"
+talos_config_dir: "./talos-config"
+
+# Network Configuration
+controlplane_vip: "192.168.0.200"  # Virtual IP for HA cluster access
+gateway: "192.168.0.1"
+dns_server: "192.168.0.2"
+
+# Cluster Configuration
+cluster_id: "1"
+cluster_secret: "yoursecrethere"  # Change this for production!
+
+# Node Configuration - Modify IPs, VM IDs, and resources here
+nodes:
+  - name: "talos-cp1"
+    role: "controlplane"
+    vm_id: "203"
+    memory: "4096"
+    cores: "2"
+    ip: "192.168.0.201"
+  - name: "talos-cp2"
+    role: "controlplane"
+    vm_id: "204"
+    memory: "4096"
+    cores: "2"
+    ip: "192.168.0.202"
+  - name: "talos-cp3"
+    role: "controlplane"
+    vm_id: "205"
+    memory: "4096"
+    cores: "2"
+    ip: "192.168.0.203"

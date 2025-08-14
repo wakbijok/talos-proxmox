@@ -1,0 +1,11 @@
+# Example vault file - Copy this to vault.yml and encrypt with ansible-vault
+# 
+# To create your vault.yml:
+# 1. cp vault.yml.example vault.yml
+# 2. Edit vault.yml with your actual password
+# 3. ansible-vault encrypt vault.yml
+#
+# To edit encrypted vault:
+# ansible-vault edit vault.yml
+
+vault_proxmox_api_password: "your_proxmox_root_password_here"

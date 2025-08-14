@@ -1,0 +1,7 @@
+customization:
+  extraKernelArgs:
+    - net.ifnames=0
+    - ip={{ item.ip }}::{{ gateway }}:255.255.255.0:{{ item.name }}:eth0:off:{{ dns_server }}
+  systemExtensions:
+    officialExtensions:
+      - siderolabs/qemu-guest-agent

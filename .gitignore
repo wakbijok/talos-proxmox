@@ -1,0 +1,53 @@
+# Sensitive Files (contain passwords and certificates)
+.ansible_vault_pass
+group_vars/vault.yml
+
+# Talos Configuration Directory (contains certificates and kubeconfig)
+talos-config/
+!/talos-config/.gitkeep
+
+# Downloaded binaries and ISOs
+*.iso
+cilium*
+talosctl*
+
+# Ansible temporary files
+.ansible/
+ansible.log
+*.retry
+
+# Python virtual environment
+ansible-venv/
+venv/
+env/
+.venv/
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# IDE/Editor files
+.vscode/
+.idea/
+*.sublime-*
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Backup files
+*.bak
+*.backup
+*.old
