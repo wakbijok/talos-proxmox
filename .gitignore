@@ -51,3 +51,5 @@ logs/
 *.bak
 *.backup
 *.old
+
+# Note: inventory file is NOT ignored as it's required for Proxmox SSH connection
