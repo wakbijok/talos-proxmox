@@ -13,7 +13,7 @@ talos_version: "v1.5.5"
 talos_config_dir: "./talos-config"
 
 # Network Configuration
-controlplane_vip: "192.168.0.200"  # Virtual IP for HA cluster access
+controlplane_vip: "192.168.0.50"  # Virtual IP for HA cluster access
 gateway: "192.168.0.1"
 dns_server: "192.168.0.2"
 
@@ -26,18 +26,18 @@ nodes:
   - name: "talos-cp1"
     role: "controlplane"
     vm_id: "203"
-    memory: "4096"
+    memory: "8192"
     cores: "2"
-    ip: "192.168.0.201"
+    ip: "192.168.0.51"
   - name: "talos-cp2"
     role: "controlplane"
     vm_id: "204"
-    memory: "4096"
+    memory: "8192"
     cores: "2"
-    ip: "192.168.0.202"
+    ip: "192.168.0.52"
   - name: "talos-cp3"
     role: "controlplane"
     vm_id: "205"
-    memory: "4096"
+    memory: "8192"
     cores: "2"
-    ip: "192.168.0.203"
+    ip: "192.168.0.53"

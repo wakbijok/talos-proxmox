@@ -160,6 +160,12 @@
         line: "    allowSchedulingOnControlPlanes: true"
         state: present
 
+    - name: Configure CNI to disable default installation
+      replace:
+        path: "{{ talos_config_dir }}/controlplane.yaml"
+        regexp: "        # # The CNI used.\n        # cni:\n        #     name: custom # Name of CNI to use.\n        #     # URLs containing manifests to apply for the CNI.\n        #     urls:\n        #         - https://docs.projectcalico.org/archive/v3.20/manifests/canal.yaml"
+        replace: "        # The CNI used.\n        cni:\n            name: none # Disable default CNI installation"
+
     - name: Add API server certificate SANs to controlplane.yaml
       lineinfile:
         path: "{{ talos_config_dir }}/controlplane.yaml"
