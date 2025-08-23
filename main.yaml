@@ -108,6 +108,24 @@
         description: "Talos node deployed via Ansible"
       loop: "{{ nodes }}"
 
+    - name: Wait for VMs to be fully created
+      pause:
+        seconds: 10
+
+    - name: Verify VMs exist before starting
+      community.general.proxmox_kvm:
+        api_host: "{{ proxmox_api_host }}"
+        api_user: "{{ proxmox_api_user }}"
+        api_password: "{{ proxmox_api_password }}"
+        node: "{{ proxmox_node }}"
+        name: "{{ item.name }}"
+        state: current
+      loop: "{{ nodes }}"
+      register: vm_status
+      until: vm_status is not failed
+      retries: 5
+      delay: 5
+
     # Configuration will be applied using base config + patches
 
     # Talos will boot from ISO with default settings and use machine config for network
